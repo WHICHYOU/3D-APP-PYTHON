@@ -1,0 +1,90 @@
+# Default Application Configuration
+
+app:
+  name: "2D to 3D Converter"
+  version: "1.0.0"
+  company: "2D3D Converter Inc."
+  website: "https://www.2d3dconverter.com"
+
+# Depth Estimation Settings
+depth_estimation:
+  default_model: "midas_v3_dpt_large" # Options: midas_v3_dpt_large, depth_anything_v2
+  device: "auto" # Options: auto, cuda, cuda:0, cpu, mps (for Apple Silicon)
+  batch_size: 4
+  precision: "fp16" # Options: fp32, fp16 (faster, less memory)
+  cache_models: true
+  model_path: "src/ai_core/models"
+
+# Rendering Settings
+rendering:
+  default_depth_intensity: 75 # 0-100%
+  default_ipd: 65 # Interpupillary Distance in mm (55-75 typical range)
+  default_convergence: 1.0 # Convergence distance multiplier
+  default_format: "half_sbs" # Options: half_sbs, full_sbs, top_bottom, anaglyph
+  hole_filling_method: "fast_marching" # Options: fast_marching, nearest_neighbor, inpaint
+  temporal_smoothing: true
+  temporal_window: 5 # frames
+
+# Video Processing Settings
+video:
+  default_quality: "balanced" # Options: fast, balanced, high, custom
+  temp_dir: "temp"
+  max_memory_gb: 8 # Maximum RAM to use for frame buffering
+  encoder: "h264" # Options: h264, h265, vp9
+
+  # Quality presets
+  quality_presets:
+    fast:
+      crf: 28
+      preset: "ultrafast"
+      depth_resolution: 384
+    balanced:
+      crf: 23
+      preset: "medium"
+      depth_resolution: 512
+    high:
+      crf: 18
+      preset: "slow"
+      depth_resolution: 512
+
+# UI Settings
+ui:
+  theme: "dark" # Options: dark, light, auto
+  language: "en" # Options: en, ko, ja, zh, es, fr, de
+  window_size: [1280, 800]
+  show_tutorial: true # Show tutorial on first launch
+  preview_max_resolution: [1280, 720] # Max resolution for real-time preview
+
+# Licensing
+licensing:
+  tier: "free" # Options: free, premium, pro
+  check_interval: 86400 # Check license every 24 hours (in seconds)
+  grace_period: 604800 # 7 days grace period after expiration (in seconds)
+  offline_validation_days: 7
+
+# Analytics (opt-in only)
+analytics:
+  enabled: false
+  anonymous_id: ""
+  crash_reporting: false
+
+# Logging
+logging:
+  level: "INFO" # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "logs/app.log"
+  max_size_mb: 10
+  backup_count: 5
+  console_output: true
+
+# Performance
+performance:
+  num_workers: 4 # Number of CPU workers for preprocessing
+  prefetch_frames: 10 # Number of frames to prefetch
+  gpu_memory_fraction: 0.9 # Use up to 90% of available GPU memory
+
+# Updates
+updates:
+  auto_check: true
+  check_interval: 86400 # Check for updates daily (in seconds)
+  auto_download: false
+  update_server: "https://updates.2d3dconverter.com"

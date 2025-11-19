@@ -1,0 +1,32 @@
+# Core Dependencies for Production
+
+# Deep Learning / AI
+torch>=2.0.0
+torchvision>=0.15.0
+timm>=0.9.0  # For MiDaS and other models
+
+# Computer Vision
+opencv-python>=4.8.0
+numpy>=1.24.0
+scipy>=1.11.0
+Pillow>=10.0.0
+
+# Video Processing
+ffmpeg-python>=0.2.0
+
+# GUI Framework
+PyQt6>=6.5.0
+PyQt6-Qt6>=6.5.0
+
+# Configuration and Utilities
+pyyaml>=6.0
+tqdm>=4.65.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Logging and Monitoring
+coloredlogs>=15.0
+
+# Optional GPU Support
+# CUDA toolkit should be installed separately
+# For AMD: pip install torch-rocm (separate installation)
