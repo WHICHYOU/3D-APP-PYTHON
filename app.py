@@ -44,11 +44,8 @@ def main():
     logger.info("Starting 2D to 3D Converter GUI")
     
     try:
-        # Enable High DPI scaling BEFORE creating QApplication
-        QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling, True)
-        QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps, True)
-        
-        # Use the PassThrough policy for high DPI scaling
+        # Qt6 has high DPI support enabled by default
+        # Set the rounding policy BEFORE creating QApplication
         QApplication.setHighDpiScaleFactorRoundingPolicy(
             Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
         )
