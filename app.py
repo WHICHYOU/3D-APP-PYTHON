@@ -7,6 +7,7 @@ Main entry point for the PyQt6 desktop GUI application.
 
 import sys
 import logging
+import tempfile
 from pathlib import Path
 
 # Add src to path
@@ -16,13 +17,14 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 from src.ui.main_window import MainWindow
 
-# Setup logging
+# Setup logging to temp directory (safe for .app bundles)
+log_path = Path(tempfile.gettempdir()) / "2d_to_3d_converter.log"
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('app.log')
+        logging.FileHandler(log_path)
     ]
 )
 
@@ -31,16 +33,8 @@ logger = logging.getLogger(__name__)
 
 def main():
     """Main entry point for the desktop application."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler('app.log')
-        ]
-    )
-    
-    logger = logging.getLogger(__name__)
+    # Logging already configured at module level
+    logger.info(f"Logging to: {log_path}")
     logger.info("Starting 2D to 3D Converter GUI")
     
     try:
