@@ -104,24 +104,34 @@ class ConversionWorker(QThread):
     def _convert_image(self, file_path, estimator, renderer, composer):
         """Convert single image."""
         try:
+            filename = Path(file_path).name
+            
             # Load image
+            self.progress_updated.emit(0, 1, f"📂 Loading {filename}...")
             image_bgr = cv2.imread(file_path)
             if image_bgr is None:
                 return False
             
             image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+            h, w = image_rgb.shape[:2]
+            self.progress_updated.emit(0, 1, f"✓ Loaded {w}x{h} image")
             
             # Estimate depth
+            self.progress_updated.emit(0, 1, f"🧠 Analyzing depth (AI processing)...")
             depth_map = estimator.estimate_depth(image_rgb, normalize=True)
+            self.progress_updated.emit(0, 1, f"✓ Depth map generated")
             
             # Render stereo
+            self.progress_updated.emit(0, 1, f"👁️ Rendering stereo views...")
             left_view, right_view = renderer.render_stereo_pair(
                 image_rgb,
                 depth_map,
-                depth_intensity=self.settings.get('depth_intensity', 75) / 100.0
+                depth_intensity=self.settings.get('depth_intensity', 75)
             )
+            self.progress_updated.emit(0, 1, f"✓ Stereo pair created")
             
             # Compose output
+            self.progress_updated.emit(0, 1, f"🎨 Composing 3D output...")
             output_format = self.settings.get('output_format', 'half_sbs')
             if output_format == 'half_sbs':
                 output = composer.compose_half_sbs(left_view, right_view)
@@ -136,9 +146,13 @@ class ConversionWorker(QThread):
             self.preview_updated.emit(output)
             
             # Save output
+            self.progress_updated.emit(0, 1, f"💾 Saving output file...")
             output_path = self._get_output_path(file_path)
             output_bgr = cv2.cvtColor(output, cv2.COLOR_RGB2BGR)
             cv2.imwrite(str(output_path), output_bgr)
+            
+            size_kb = output_path.stat().st_size / 1024
+            self.progress_updated.emit(1, 1, f"✅ Complete! Saved to {output_path.parent.name}/{output_path.name} ({size_kb:.1f} KB)")
             
             return True
             
@@ -197,12 +211,12 @@ class ConversionWorker(QThread):
                 
                 # Estimate depth with temporal filtering
                 depth_map = estimator.estimate_depth(frame_rgb, normalize=True)
-                depth_map = temporal_filter.filter(depth_map, method="ema")
+                depth_map = temporal_filter.filter(depth_map)
                 
                 # Render and compose
                 left_view, right_view = renderer.render_stereo_pair(
                     frame_rgb, depth_map,
-                    depth_intensity=self.settings.get('depth_intensity', 75) / 100.0
+                    depth_intensity=self.settings.get('depth_intensity', 75)
                 )
                 
                 output_format = self.settings.get('output_format', 'half_sbs')
@@ -410,92 +424,3 @@ class ProgressDialog(QDialog):
             self.worker.cancel()
             self.worker.wait()
         event.accept()
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QProgressBar, QLabel, QPushButton
-from PyQt6.QtCore import Qt, pyqtSignal
-
-
-class ProgressDialog(QDialog):
-    """Dialog showing conversion progress"""
-    
-    # Signals
-    cancelled = pyqtSignal()
-    
-    def __init__(self, parent=None):
-        """
-        Initialize progress dialog
-        
-        Args:
-            parent: Parent widget
-        """
-        super().__init__(parent)
-        
-        self.setWindowTitle('Converting to 3D')
-        self.setModal(True)
-        self.setMinimumWidth(400)
-        
-        self.init_ui()
-    
-    def init_ui(self):
-        """Initialize user interface"""
-        layout = QVBoxLayout(self)
-        
-        # Status label
-        self.status_label = QLabel('Initializing...')
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.status_label)
-        
-        # Progress bar
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        layout.addWidget(self.progress_bar)
-        
-        # Details label
-        self.details_label = QLabel('')
-        self.details_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.details_label)
-        
-        # Cancel button
-        self.cancel_btn = QPushButton('Cancel')
-        self.cancel_btn.clicked.connect(self.on_cancel)
-        layout.addWidget(self.cancel_btn)
-    
-    def set_progress(self, value: int):
-        """
-        Set progress value
-        
-        Args:
-            value: Progress value (0-100)
-        """
-        self.progress_bar.setValue(value)
-    
-    def set_status(self, status: str):
-        """
-        Set status message
-        
-        Args:
-            status: Status message
-        """
-        self.status_label.setText(status)
-    
-    def set_details(self, details: str):
-        """
-        Set details message
-        
-        Args:
-            details: Details message
-        """
-        self.details_label.setText(details)
-    
-    def on_cancel(self):
-        """Handle cancel button click"""
-        self.cancelled.emit()
-        self.close()
-    
-    def set_indeterminate(self):
-        """Set progress bar to indeterminate mode"""
-        self.progress_bar.setRange(0, 0)
-    
-    def set_determinate(self):
-        """Set progress bar to determinate mode"""
-        self.progress_bar.setRange(0, 100)
