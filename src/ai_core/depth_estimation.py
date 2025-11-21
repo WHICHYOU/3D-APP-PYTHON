@@ -49,9 +49,12 @@ class DepthEstimator:
     def _load_model(self):
         """Load the depth estimation model"""
         print(f"Loading {self.model_type} model on {self.device}...")
+        print("Note: First-time download may take several minutes (~1.3 GB)")
+        print("Subsequent runs will use cached models...")
         
         if self.model_type == "midas_v3":
             # Load MiDaS v3.1 DPT-Large model
+            print("Downloading/Loading MiDaS DPT-Large...")
             self.model = torch.hub.load(
                 "intel-isl/MiDaS",
                 "DPT_Large",
@@ -60,6 +63,7 @@ class DepthEstimator:
             )
             
             # Load transforms
+            print("Loading transforms...")
             midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
             self.transform = midas_transforms.dpt_transform
             
