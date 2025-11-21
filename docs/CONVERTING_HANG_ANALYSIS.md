@@ -18,6 +18,7 @@ The app appears to hang with "Converting..." message and never completes.
 ## Files Affected
 
 1. **`src/ai_core/depth_estimation.py`** - Line 52-58
+
    ```python
    self.model = torch.hub.load(
        "intel-isl/MiDaS",
@@ -35,23 +36,27 @@ The app appears to hang with "Converting..." message and never completes.
 ## Solutions Implemented
 
 ### 1. Model Download Script (`download_models.py`)
+
 - Pre-downloads models before first use
 - Shows progress bar during download
 - Tests model after download
 - Usage: `python3 download_models.py`
 
 ### 2. Startup Warning (`app.py`)
+
 - Checks if models are downloaded on startup
 - Shows informational dialog if models are missing
 - Warns user that first conversion will take time
 - Provides instructions for pre-downloading
 
 ### 3. Better Console Messages (`depth_estimation.py`)
+
 - Added messages indicating model download is happening
 - Warns about first-time delay
 - Shows what's being downloaded
 
 ### 4. Troubleshooting Guide (`docs/TROUBLESHOOTING_HANG.md`)
+
 - Complete documentation of the issue
 - Step-by-step solutions
 - How to verify models are downloaded
@@ -60,19 +65,23 @@ The app appears to hang with "Converting..." message and never completes.
 ## How to Fix for End Users
 
 ### Option A: Pre-download (Recommended)
+
 ```bash
 cd /Users/SB/Downloads/3d_conversion_app_python
 python3 download_models.py
 ```
 
 ### Option B: Run from Terminal
+
 ```bash
 cd /Users/SB/Downloads/3d_conversion_app_python
 python3 app.py
 ```
+
 This shows download progress in terminal.
 
 ### Option C: Just Wait
+
 - Click "Convert" and wait 5-30 minutes
 - Don't close the app
 - Check terminal/console for progress
@@ -81,11 +90,13 @@ This shows download progress in terminal.
 ## Verification
 
 Check if models are downloaded:
+
 ```bash
 ls -lh ~/.cache/torch/hub/checkpoints/
 ```
 
 Should show:
+
 - `dpt_large_384.pt` (~1.3 GB)
 
 ## Future Improvements
@@ -102,15 +113,18 @@ To prevent this issue in future versions:
 ## Technical Details
 
 **Model Sizes:**
+
 - MiDaS DPT-Large: ~1.3 GB (dpt_large_384.pt)
 - MiDaS repo: ~12 MB (intel-isl/MiDaS zipball)
 - Transforms: <1 MB
 
 **Download Locations:**
+
 - Model repo: `~/.cache/torch/hub/intel-isl_MiDaS_master/`
 - Model weights: `~/.cache/torch/hub/checkpoints/dpt_large_384.pt`
 
 **Download Speed:**
+
 - Typical: 400-600 KB/s
 - Time estimate: 35-50 minutes at 500 KB/s
 
@@ -141,6 +155,7 @@ To prevent this issue in future versions:
 ## Notes for Developers
 
 When building the .app bundle with PyInstaller:
+
 - Models are NOT included (too large)
 - Users must download on first run
 - Consider adding `--onefile` build with smaller MiDaS model
@@ -149,6 +164,7 @@ When building the .app bundle with PyInstaller:
 ## User Communication
 
 Add to README and documentation:
+
 - **System Requirements**: Internet connection for first use
 - **First Run**: Allow 5-30 minutes for model download
 - **Disk Space**: 2 GB free (models + temp files)

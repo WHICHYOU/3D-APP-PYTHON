@@ -24,6 +24,7 @@ python3 download_models.py
 ```
 
 This script will:
+
 - Download all required models (~1.3 GB)
 - Show progress during download
 - Cache models for future use
@@ -50,6 +51,7 @@ python3 app.py
 ```
 
 You'll see messages like:
+
 ```
 Loading midas_v3 model on mps...
 Note: First-time download may take several minutes (~1.3 GB)
@@ -66,6 +68,7 @@ ls -lh ~/.cache/torch/hub/checkpoints/
 ```
 
 You should see:
+
 - `dpt_large_384.pt` (~1.3 GB) - Main depth estimation model
 
 ## Why This Happens
@@ -75,6 +78,7 @@ The MiDaS model is loaded using PyTorch Hub, which automatically downloads model
 ## Future Improvements
 
 We plan to add:
+
 - [ ] Pre-download prompt on first launch
 - [ ] Progress bar for model downloads
 - [ ] Offline mode with pre-bundled models
