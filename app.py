@@ -72,7 +72,7 @@ def main():
 
 
 def _check_models_downloaded(app):
-    """Check if AI models are downloaded and warn user if not."""
+    """Check if AI models are downloaded and offer to download them."""
     from pathlib import Path
     from PyQt6.QtWidgets import QMessageBox
     
@@ -81,28 +81,38 @@ def _check_models_downloaded(app):
     
     if not model_file.exists():
         msg = QMessageBox()
-        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setIcon(QMessageBox.Icon.Question)
         msg.setWindowTitle("First Time Setup")
         msg.setText("<h3>AI Models Need to be Downloaded</h3>")
         msg.setInformativeText(
             "<p>On first use, the app needs to download AI models (~1.3 GB).</p>"
             "<p><b>This may take 5-30 minutes</b> depending on your internet speed.</p>"
             "<br>"
-            "<p><b>What happens next:</b></p>"
+            "<p><b>Options:</b></p>"
             "<ul>"
-            "<li>When you click 'Convert', the download will start</li>"
-            "<li>The app may appear frozen during download</li>"
-            "<li>Check Terminal/Console for progress</li>"
-            "<li>Future conversions will be instant (models are cached)</li>"
+            "<li><b>Download Now:</b> Download models with progress dialog (recommended)</li>"
+            "<li><b>Download Later:</b> Models will download when you first click 'Convert'</li>"
             "</ul>"
             "<br>"
-            "<p><b>Tip:</b> Run <code>python3 download_models.py</code> in Terminal<br>"
-            "to download models with progress bar before using the app.</p>"
+            "<p><b>Note:</b> Models are cached locally. Future conversions will be instant.</p>"
         )
-        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-        msg.exec()
+        msg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        msg.button(QMessageBox.StandardButton.Yes).setText("Download Now")
+        msg.button(QMessageBox.StandardButton.No).setText("Download Later")
+        msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+        
+        result = msg.exec()
+        
+        if result == QMessageBox.StandardButton.Yes:
+            # Show download dialog
+            from src.ui.model_download_dialog import ModelDownloadDialog
+            download_dialog = ModelDownloadDialog()
+            download_dialog.exec()
 
 
 if __name__ == "__main__":
     main()
+
 

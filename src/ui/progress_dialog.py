@@ -39,6 +39,20 @@ class ConversionWorker(QThread):
         success_count = 0
         total_count = len(self.files)
         
+        # Check if models need to be downloaded
+        from pathlib import Path
+        cache_dir = Path.home() / ".cache" / "torch" / "hub" / "checkpoints"
+        model_file = cache_dir / "dpt_large_384.pt"
+        
+        if not model_file.exists():
+            self.progress_updated.emit(
+                0, total_count,
+                "⏳ Downloading AI models (~1.3 GB)...\n"
+                "This may take 5-30 minutes on first run.\n"
+                "Models will be cached for future use.\n"
+                "Please wait..."
+            )
+        
         # Initialize models once
         try:
             from ..ai_core.depth_estimation import DepthEstimator
@@ -49,6 +63,9 @@ class ConversionWorker(QThread):
             estimator = DepthEstimator()
             renderer = DIBRRenderer(ipd=self.settings.get('ipd', 65))
             composer = SBSComposer()
+            
+            # Confirm models loaded successfully
+            self.progress_updated.emit(0, total_count, "✓ AI models ready. Starting conversion...")
             
         except Exception as e:
             logger.error(f"Failed to initialize models: {e}")
