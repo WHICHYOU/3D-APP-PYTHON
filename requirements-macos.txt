@@ -1,0 +1,19 @@
+# macOS-specific requirements
+# For Apple Silicon (M1/M2/M3) with MPS acceleration
+
+# Standard PyTorch with MPS (Metal Performance Shaders) support
+# This provides GPU acceleration on Apple Silicon
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Note: MPS support is automatic in PyTorch 2.0+
+# The application will automatically detect and use MPS if available
+
+# For Intel Macs:
+# MPS is not available, will fall back to CPU
+# Performance will be significantly slower
+
+# All other dependencies are in requirements.txt
+# Install order:
+#   1. pip install -r requirements.txt
+#   2. pip install -r requirements-macos.txt

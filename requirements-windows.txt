@@ -1,0 +1,22 @@
+# Windows-specific requirements with CUDA support
+# For NVIDIA GPU acceleration (Recommended for Windows)
+
+# Install PyTorch with CUDA 12.1 support
+# This provides GPU acceleration for depth estimation
+--index-url https://download.pytorch.org/whl/cu121
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Alternative: CPU-only version (slower, but works without NVIDIA GPU)
+# Uncomment these and comment out the above if you don't have an NVIDIA GPU:
+# --index-url https://download.pytorch.org/whl/cpu
+# torch>=2.0.0
+# torchvision>=0.15.0
+
+# Note: For AMD GPUs on Windows, CUDA support is limited.
+# CPU version is recommended for AMD systems.
+
+# All other dependencies are in requirements.txt
+# Install order:
+#   1. pip install -r requirements.txt
+#   2. pip install -r requirements-windows.txt
