@@ -26,6 +26,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.current_file = None
         self.input_files = []
+        
+        # Check dependencies first
+        from ..utils.dependency_manager import DependencyManager
+        self.dependency_manager = DependencyManager()
+        
         self._setup_ui()
         self._create_menu_bar()
         self._create_toolbar()
@@ -34,9 +39,54 @@ class MainWindow(QMainWindow):
         # Set window properties
         self.setWindowTitle("2D to 3D Converter")
         self.setMinimumSize(1200, 800)
+        
+        # Set initial size and center on screen
         self.resize(1400, 900)
+        self._center_on_screen()
+        
+        # Check dependencies and show setup if needed
+        self._check_dependencies_on_startup()
         
         logger.info("MainWindow initialized")
+    
+    def _center_on_screen(self):
+        """Center window on screen."""
+        from PyQt6.QtGui import QGuiApplication
+        screen = QGuiApplication.primaryScreen().geometry()
+        window_geometry = self.frameGeometry()
+        center_point = screen.center()
+        window_geometry.moveCenter(center_point)
+        self.move(window_geometry.topLeft())
+    
+    def _check_dependencies_on_startup(self):
+        """Check dependencies and show setup wizard if needed."""
+        if not self.dependency_manager.is_ready():
+            from ..ui.setup_wizard import SetupWizard
+            wizard = SetupWizard(self.dependency_manager, self)
+            result = wizard.exec()
+            
+            # Re-check and update UI
+            self._update_dependency_status()
+        else:
+            self._update_dependency_status()
+    
+    def _update_dependency_status(self):
+        """Update UI based on dependency status."""
+        is_ready = self.dependency_manager.is_ready()
+        
+        # Enable/disable conversion buttons
+        self.convert_selected_btn.setEnabled(is_ready and len(self.input_files) > 0)
+        self.convert_all_btn.setEnabled(is_ready and len(self.input_files) > 0)
+        
+        # Update status bar
+        if is_ready:
+            self.dependency_status_label.setText("✅ Dependencies Ready")
+            self.dependency_status_label.setStyleSheet("color: green; font-weight: bold;")
+            self.setup_btn.setEnabled(False)
+        else:
+            self.dependency_status_label.setText("❌ Setup Required")
+            self.dependency_status_label.setStyleSheet("color: red; font-weight: bold;")
+            self.setup_btn.setEnabled(True)
     
     def _setup_ui(self):
         """Setup user interface."""
@@ -123,9 +173,9 @@ class MainWindow(QMainWindow):
         # Conversion buttons
         convert_layout = QVBoxLayout()
         
-        self.convert_btn = QPushButton("Convert Selected")
-        self.convert_btn.setEnabled(False)
-        self.convert_btn.setStyleSheet("""
+        self.convert_selected_btn = QPushButton("Convert Selected")
+        self.convert_selected_btn.setEnabled(False)
+        self.convert_selected_btn.setStyleSheet("""
             QPushButton {
                 background-color: #0d6efd;
                 color: white;
@@ -140,13 +190,13 @@ class MainWindow(QMainWindow):
                 background-color: #6c757d;
             }
         """)
-        self.convert_btn.clicked.connect(self._start_conversion)
-        convert_layout.addWidget(self.convert_btn)
+        self.convert_selected_btn.clicked.connect(self._start_conversion)
+        convert_layout.addWidget(self.convert_selected_btn)
         
-        self.batch_convert_btn = QPushButton("Convert All")
-        self.batch_convert_btn.setEnabled(False)
-        self.batch_convert_btn.clicked.connect(self._start_batch_conversion)
-        convert_layout.addWidget(self.batch_convert_btn)
+        self.convert_all_btn = QPushButton("Convert All")
+        self.convert_all_btn.setEnabled(False)
+        self.convert_all_btn.clicked.connect(self._start_batch_conversion)
+        convert_layout.addWidget(self.convert_all_btn)
         
         layout.addLayout(convert_layout)
         
@@ -261,6 +311,33 @@ class MainWindow(QMainWindow):
         """Create status bar."""
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
+        
+        # Add dependency status indicator
+        self.dependency_status_label = QLabel("⏳ Checking...")
+        self.status_bar.addPermanentWidget(self.dependency_status_label)
+        
+        # Add setup button
+        self.setup_btn = QPushButton("Run Setup")
+        self.setup_btn.clicked.connect(self._show_setup_wizard)
+        self.setup_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                padding: 5px 15px;
+                border: none;
+                border-radius: 3px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #0b7dda;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
+        self.status_bar.addPermanentWidget(self.setup_btn)
+        
         self.status_bar.showMessage("Ready")
     
     # File management methods
@@ -300,8 +377,7 @@ class MainWindow(QMainWindow):
         
         if added_count > 0:
             self.status_bar.showMessage(f"Added {added_count} file(s)")
-            self.convert_btn.setEnabled(True)
-            self.batch_convert_btn.setEnabled(True)
+            self._update_button_states()
             self.clear_btn.setEnabled(True)
             logger.info(f"Added {added_count} files")
     
@@ -329,9 +405,10 @@ class MainWindow(QMainWindow):
         """Update button enabled states."""
         has_files = len(self.input_files) > 0
         has_selection = len(self.file_list.selectedItems()) > 0
+        is_ready = self.dependency_manager.is_ready()
         
-        self.convert_btn.setEnabled(has_selection)
-        self.batch_convert_btn.setEnabled(has_files)
+        self.convert_selected_btn.setEnabled(has_selection and is_ready)
+        self.convert_all_btn.setEnabled(has_files and is_ready)
         self.clear_btn.setEnabled(has_files)
         self.remove_btn.setEnabled(has_selection)
     
@@ -453,6 +530,14 @@ class MainWindow(QMainWindow):
             "<p>For detailed documentation, see VIDEO_CONVERSION_GUIDE.md</p>"
         )
     
+    def _show_setup_wizard(self):
+        """Show setup wizard dialog."""
+        from ..ui.setup_wizard import SetupWizard
+        wizard = SetupWizard(self.dependency_manager, self)
+        wizard.setup_complete.connect(self._update_dependency_status)
+        wizard.exec()
+        self._update_dependency_status()
+    
     # Drag and drop support
     
     def dragEnterEvent(self, event: QDragEnterEvent):
@@ -480,131 +565,3 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Optional
 
 
-class MainWindow(QMainWindow):
-    """Main application window"""
-    
-    # Signals
-    file_selected = pyqtSignal(str)
-    conversion_requested = pyqtSignal()
-    
-    def __init__(self):
-        """Initialize main window"""
-        super().__init__()
-        
-        self.current_file = None
-        
-        self.init_ui()
-    
-    def init_ui(self):
-        """Initialize user interface"""
-        self.setWindowTitle('2D to 3D Converter')
-        self.setGeometry(100, 100, 1200, 800)
-        
-        # Create menu bar
-        self.create_menu_bar()
-        
-        # Create central widget
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        
-        # Main layout
-        main_layout = QVBoxLayout(central_widget)
-        
-        # Top toolbar
-        toolbar = self.create_toolbar()
-        main_layout.addLayout(toolbar)
-        
-        # Content area with splitter
-        content_splitter = QSplitter(Qt.Orientation.Horizontal)
-        
-        # Left panel - Preview
-        # TODO: Add preview widget
-        preview_label = QLabel('Preview Area')
-        preview_label.setStyleSheet('border: 1px solid #ccc; background: #f0f0f0;')
-        preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        content_splitter.addWidget(preview_label)
-        
-        # Right panel - Settings
-        # TODO: Add settings panel
-        settings_label = QLabel('Settings Panel')
-        settings_label.setStyleSheet('border: 1px solid #ccc; background: #f0f0f0;')
-        settings_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        content_splitter.addWidget(settings_label)
-        
-        content_splitter.setStretchFactor(0, 2)
-        content_splitter.setStretchFactor(1, 1)
-        
-        main_layout.addWidget(content_splitter)
-        
-        # Status bar
-        self.statusBar().showMessage('Ready')
-    
-    def create_menu_bar(self):
-        """Create application menu bar"""
-        menubar = self.menuBar()
-        
-        # File menu
-        file_menu = menubar.addMenu('&File')
-        
-        # TODO: Add menu actions
-        # open_action = QAction('&Open', self)
-        # file_menu.addAction(open_action)
-        
-        # Edit menu
-        edit_menu = menubar.addMenu('&Edit')
-        
-        # View menu
-        view_menu = menubar.addMenu('&View')
-        
-        # Help menu
-        help_menu = menubar.addMenu('&Help')
-    
-    def create_toolbar(self) -> QHBoxLayout:
-        """
-        Create top toolbar
-        
-        Returns:
-            Toolbar layout
-        """
-        toolbar = QHBoxLayout()
-        
-        # Open file button
-        open_btn = QPushButton('Open File')
-        open_btn.clicked.connect(self.open_file)
-        toolbar.addWidget(open_btn)
-        
-        # Convert button
-        convert_btn = QPushButton('Convert to 3D')
-        convert_btn.clicked.connect(self.start_conversion)
-        convert_btn.setEnabled(False)
-        self.convert_btn = convert_btn
-        toolbar.addWidget(convert_btn)
-        
-        toolbar.addStretch()
-        
-        # License info
-        license_label = QLabel('Free Tier')
-        toolbar.addWidget(license_label)
-        
-        return toolbar
-    
-    def open_file(self):
-        """Open file dialog"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            'Select Image or Video',
-            '',
-            'Media Files (*.mp4 *.avi *.mov *.jpg *.png);;All Files (*)'
-        )
-        
-        if file_path:
-            self.current_file = file_path
-            self.file_selected.emit(file_path)
-            self.convert_btn.setEnabled(True)
-            self.statusBar().showMessage(f'Loaded: {file_path}')
-    
-    def start_conversion(self):
-        """Start conversion process"""
-        if self.current_file:
-            self.conversion_requested.emit()
-            self.statusBar().showMessage('Converting...')

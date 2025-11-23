@@ -16,14 +16,26 @@ logger = logging.getLogger(__name__)
 class VideoEncoder:
     """Encodes frames into video."""
     
-    def __init__(self, ffmpeg_path: str = "ffmpeg"):
+    def __init__(self, ffmpeg_handler=None, ffmpeg_path: str = None):
         """
         Initialize video encoder.
         
         Args:
-            ffmpeg_path: Path to FFmpeg executable
+            ffmpeg_handler: FFmpegHandler instance (preferred)
+            ffmpeg_path: Path to FFmpeg executable (fallback)
         """
-        self.ffmpeg_path = ffmpeg_path
+        if ffmpeg_handler is not None:
+            self.ffmpeg_path = ffmpeg_handler.ffmpeg_path
+        elif ffmpeg_path is not None:
+            self.ffmpeg_path = ffmpeg_path
+        else:
+            # Try to get from installer
+            try:
+                from .ffmpeg_handler import FFmpegHandler
+                handler = FFmpegHandler()
+                self.ffmpeg_path = handler.ffmpeg_path
+            except Exception:
+                self.ffmpeg_path = "ffmpeg"
     
     def encode_from_frames(
         self,
@@ -57,29 +69,39 @@ class VideoEncoder:
         cmd = [
             self.ffmpeg_path,
             "-framerate", str(fps),
-            "-i", str(input_pattern),
+            "-i", str(input_pattern)
+        ]
+        
+        # Add audio input if provided
+        if audio_path and audio_path.exists():
+            cmd.extend(["-i", str(audio_path)])
+        
+        # Now add output options (after all inputs)
+        cmd.extend([
             "-c:v", codec,
             "-crf", str(crf),
             "-preset", preset,
-            "-pix_fmt", "yuv420p",  # Compatibility
-            "-hide_banner",
-            "-loglevel", "error",
-            "-stats"
-        ]
+            "-pix_fmt", "yuv420p"
+        ])
         
-        # Add audio if provided
+        # Add audio encoding options if audio is present
         if audio_path and audio_path.exists():
             cmd.extend([
-                "-i", str(audio_path),
                 "-c:a", "aac",
                 "-b:a", "192k",
                 "-shortest"  # Match shortest stream
             ])
         
-        cmd.extend(["-y", str(output_path)])  # Overwrite output
+        cmd.extend([
+            "-hide_banner",
+            "-loglevel", "error",
+            "-stats",
+            "-y", str(output_path)
+        ])
         
         logger.info(f"Encoding video: {output_path.name}")
         logger.info(f"Settings: {codec}, CRF={crf}, preset={preset}, FPS={fps}")
+        logger.info(f"FFmpeg command: {' '.join(cmd)}")
         
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)
@@ -186,189 +208,4 @@ class VideoEncoder:
         except subprocess.CalledProcessError as e:
             logger.error(f"Stereo video encoding failed: {e}")
             raise
-import os
-from pathlib import Path
-from typing import Optional, Callable, Dict
-from .ffmpeg_handler import FFmpegHandler
 
-
-class VideoEncoder:
-    """Encode frames to video file"""
-    
-    # Quality presets
-    QUALITY_PRESETS = {
-        'ultra': {'crf': 18, 'preset': 'slow'},
-        'high': {'crf': 23, 'preset': 'medium'},
-        'medium': {'crf': 28, 'preset': 'fast'},
-        'low': {'crf': 32, 'preset': 'veryfast'},
-    }
-    
-    def __init__(self, ffmpeg_handler: Optional[FFmpegHandler] = None):
-        """
-        Initialize video encoder
-        
-        Args:
-            ffmpeg_handler: FFmpeg handler instance
-        """
-        self.ffmpeg = ffmpeg_handler or FFmpegHandler()
-    
-    def encode(
-        self,
-        frames_dir: str,
-        output_path: str,
-        fps: int = 30,
-        quality: str = 'high',
-        audio_path: Optional[str] = None,
-        progress_callback: Optional[Callable[[float], None]] = None
-    ) -> bool:
-        """
-        Encode frames to video
-        
-        Args:
-            frames_dir: Directory containing frames
-            output_path: Output video path
-            fps: Output FPS
-            quality: Quality preset ('ultra', 'high', 'medium', 'low')
-            audio_path: Optional audio track
-            progress_callback: Progress callback function
-        
-        Returns:
-            True if successful
-        """
-        # Get quality settings
-        preset = self.QUALITY_PRESETS.get(quality, self.QUALITY_PRESETS['high'])
-        
-        # Build frame pattern
-        frame_pattern = os.path.join(frames_dir, 'frame_%06d.png')
-        
-        if progress_callback:
-            progress_callback(0.0)
-        
-        # Encode video
-        success = self.ffmpeg.encode_video(
-            input_pattern=frame_pattern,
-            output_path=output_path,
-            fps=fps,
-            codec='libx264',
-            audio_path=audio_path,
-            crf=preset['crf']
-        )
-        
-        if progress_callback:
-            progress_callback(1.0)
-        
-        return success
-    
-    def encode_stereo_sbs(
-        self,
-        left_frames_dir: str,
-        right_frames_dir: str,
-        output_path: str,
-        fps: int = 30,
-        mode: str = 'half',
-        quality: str = 'high',
-        audio_path: Optional[str] = None
-    ) -> bool:
-        """
-        Encode side-by-side stereoscopic video
-        
-        Args:
-            left_frames_dir: Directory with left eye frames
-            right_frames_dir: Directory with right eye frames
-            output_path: Output video path
-            fps: Output FPS
-            mode: 'half' or 'full' SBS
-            quality: Quality preset
-            audio_path: Optional audio track
-        
-        Returns:
-            True if successful
-        """
-        # TODO: Implement SBS composition and encoding
-        print(f"Would encode {mode} SBS video to {output_path}")
-        return True
-    
-    def estimate_output_size(
-        self,
-        frame_count: int,
-        width: int,
-        height: int,
-        fps: int,
-        quality: str = 'high'
-    ) -> int:
-        """
-        Estimate output video file size
-        
-        Args:
-            frame_count: Number of frames
-            width: Frame width
-            height: Frame height
-            fps: Target FPS
-            quality: Quality preset
-        
-        Returns:
-            Estimated size in bytes
-        """
-        # Rough estimation based on bitrate
-        duration = frame_count / fps
-        
-        # Approximate bitrates for different qualities (Mbps)
-        bitrates = {
-            'ultra': 10,
-            'high': 6,
-            'medium': 3,
-            'low': 1.5,
-        }
-        
-        bitrate = bitrates.get(quality, 6)
-        
-        # Adjust for resolution
-        resolution_factor = (width * height) / (1920 * 1080)
-        adjusted_bitrate = bitrate * resolution_factor
-        
-        # Calculate size in bytes
-        size_mb = (adjusted_bitrate * duration) / 8
-        size_bytes = int(size_mb * 1024 * 1024)
-        
-        return size_bytes
-    
-    def get_recommended_settings(
-        self,
-        frame_count: int,
-        width: int,
-        height: int,
-        target_size_mb: Optional[int] = None
-    ) -> Dict:
-        """
-        Get recommended encoding settings
-        
-        Args:
-            frame_count: Number of frames
-            width: Frame width
-            height: Frame height
-            target_size_mb: Target file size in MB (optional)
-        
-        Returns:
-            Dictionary of recommended settings
-        """
-        # Default to high quality
-        recommended_quality = 'high'
-        
-        # If target size specified, find appropriate quality
-        if target_size_mb:
-            for quality in ['ultra', 'high', 'medium', 'low']:
-                estimated_size = self.estimate_output_size(
-                    frame_count, width, height, 30, quality
-                )
-                estimated_mb = estimated_size / (1024 * 1024)
-                
-                if estimated_mb <= target_size_mb:
-                    recommended_quality = quality
-                    break
-        
-        return {
-            'quality': recommended_quality,
-            'fps': 30,
-            'codec': 'libx264',
-            **self.QUALITY_PRESETS[recommended_quality]
-        }

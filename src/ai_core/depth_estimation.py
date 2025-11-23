@@ -16,7 +16,8 @@ class DepthEstimator:
         self,
         model_type: str = "midas_v3",
         device: str = "auto",
-        precision: str = "fp16"
+        precision: str = "fp16",
+        batch_size: int = 4
     ):
         """
         Initialize depth estimator
@@ -29,6 +30,7 @@ class DepthEstimator:
         self.model_type = model_type
         self.device = self._select_device(device)
         self.precision = precision
+        self.batch_size = batch_size
         self.model = None
         self.transform = None
         
@@ -188,15 +190,63 @@ class DepthEstimator:
         if not images:
             return []
         
-        depth_maps = []
-        
-        # Process images one at a time for now
-        # TODO: Implement true batched inference for better performance
-        for i, img in enumerate(images):
-            print(f"Processing image {i+1}/{len(images)}...")
-            depth = self.estimate_depth(img, normalize)
-            depth_maps.append(depth)
-        
+        depth_maps: List[np.ndarray] = []
+
+        # Convert all images to transformed tensors first (CxHxW)
+        tensors = []
+        original_sizes = []
+        for img in images:
+            original_sizes.append(img.shape[:2])
+            t = self.transform(img)
+            # Ensure tensor is 3D (C,H,W)
+            if t.dim() == 3:
+                tensors.append(t)
+            else:
+                tensors.append(t.squeeze(0))
+
+        # Run inference in batches
+        for start in range(0, len(tensors), batch_size):
+            batch_tensors = tensors[start:start + batch_size]
+            batch = torch.stack(batch_tensors, dim=0).to(self.device)
+
+            # Apply half precision on CUDA if requested
+            if self.precision == "fp16" and self.device.type == "cuda":
+                batch = batch.half()
+
+            with torch.no_grad():
+                preds = self.model(batch)
+
+            # Normalize preds to a list of numpy arrays
+            if isinstance(preds, torch.Tensor):
+                pred_batch = preds
+            else:
+                # Some MiDaS variants return a tuple/list
+                pred_batch = preds[0]
+
+            # Move to CPU and convert
+            pred_batch = pred_batch.squeeze(1).cpu().numpy() if pred_batch.dim() == 4 else pred_batch.cpu().numpy()
+
+            # For each item in the batch, resize to original and normalize
+            for i_in_batch, pred in enumerate(pred_batch):
+                global_idx = start + i_in_batch
+                orig_h, orig_w = original_sizes[global_idx]
+
+                # pred may be in shape (H', W')
+                if pred.shape != (orig_h, orig_w):
+                    pred_resized = cv2.resize(pred, (orig_w, orig_h), interpolation=cv2.INTER_CUBIC)
+                else:
+                    pred_resized = pred
+
+                if normalize:
+                    dmin = pred_resized.min()
+                    dmax = pred_resized.max()
+                    if dmax - dmin > 1e-6:
+                        pred_resized = (pred_resized - dmin) / (dmax - dmin)
+                    else:
+                        pred_resized = np.zeros_like(pred_resized)
+
+                depth_maps.append(pred_resized.astype(np.float32))
+
         return depth_maps
     
     def set_quality_preset(self, preset: str):

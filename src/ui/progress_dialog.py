@@ -96,7 +96,9 @@ class ConversionWorker(QThread):
                     self.file_completed.emit(filename, False, "Conversion failed")
                     
             except Exception as e:
-                logger.error(f"Error converting {filename}: {e}")
+                import traceback
+                error_msg = f"{str(e)}\n{traceback.format_exc()}"
+                logger.error(f"Error converting {filename}: {error_msg}")
                 self.file_completed.emit(filename, False, str(e))
         
         self.conversion_finished.emit(success_count, total_count)
@@ -157,18 +159,23 @@ class ConversionWorker(QThread):
             return True
             
         except Exception as e:
-            logger.error(f"Image conversion error: {e}")
+            import traceback
+            error_msg = f"{str(e)}\n{traceback.format_exc()}"
+            logger.error(f"Image conversion error: {error_msg}")
             return False
     
     def _convert_video(self, file_path, estimator, renderer, composer):
         """Convert video file."""
         try:
-            from ..video_processing.ffmpeg_handler import FFmpegHandler, AudioHandler
+            from ..video_processing.ffmpeg_handler import FFmpegHandler
+            from ..video_processing.audio_handler import AudioHandler
             from ..video_processing.encoder import VideoEncoder
             from ..ai_core.temporal_filter import TemporalFilter
+            import tempfile
             
-            # Setup paths
-            work_dir = Path("temp_conversion")
+            # Setup paths in system temp directory
+            temp_base = Path(tempfile.gettempdir())
+            work_dir = temp_base / "temp_conversion"
             frames_dir = work_dir / "frames"
             output_frames_dir = work_dir / "output_frames"
             audio_path = work_dir / "audio.aac"
@@ -191,7 +198,7 @@ class ConversionWorker(QThread):
             # Extract audio
             has_audio = False
             if video_info['has_audio']:
-                audio_handler = AudioHandler()
+                audio_handler = AudioHandler(ffmpeg_handler=ffmpeg)
                 has_audio = audio_handler.extract_audio(Path(file_path), audio_path)
             
             # Process frames
@@ -240,14 +247,23 @@ class ConversionWorker(QThread):
             
             # Encode video
             self.progress_updated.emit(100, 100, "Encoding video...")
-            encoder = VideoEncoder()
+            encoder = VideoEncoder(ffmpeg_handler=ffmpeg)
             output_path = self._get_output_path(file_path)
+            
+            # Only include audio if file actually exists and has content
+            audio_file = None
+            if has_audio and audio_path.exists() and audio_path.stat().st_size > 0:
+                audio_file = audio_path
+                logger.info(f"Including audio file: {audio_file} ({audio_path.stat().st_size} bytes)")
+            else:
+                logger.info("No audio file to include in output")
+            
             encoder.encode_from_frames(
                 output_frames_dir,
                 Path(output_path),
                 fps=video_info['fps'],
                 frame_pattern="frame_%06d.png",
-                audio_path=audio_path if has_audio else None
+                audio_path=audio_file
             )
             
             # Cleanup
@@ -257,7 +273,9 @@ class ConversionWorker(QThread):
             return True
             
         except Exception as e:
-            logger.error(f"Video conversion error: {e}")
+            import traceback
+            error_msg = f"{str(e)}\n{traceback.format_exc()}"
+            logger.error(f"Video conversion error: {error_msg}")
             return False
     
     def _get_output_path(self, input_path):
@@ -344,6 +362,11 @@ class ProgressDialog(QDialog):
         
         button_layout.addStretch()
         
+        self.open_folder_btn = QPushButton("📁 Open Output Folder")
+        self.open_folder_btn.setEnabled(False)
+        self.open_folder_btn.clicked.connect(self._open_output_folder)
+        button_layout.addWidget(self.open_folder_btn)
+        
         self.close_btn = QPushButton("Close")
         self.close_btn.setEnabled(False)
         self.close_btn.clicked.connect(self.accept)
@@ -364,6 +387,9 @@ class ProgressDialog(QDialog):
         """Handle progress update."""
         self.progress_bar.setValue(current)
         self.overall_label.setText(f"{message} ({current}/{total})")
+        
+        # Add to log
+        self.log_text.append(message)
         
         # Update time estimate
         elapsed = time.time() - self.start_time
@@ -388,10 +414,20 @@ class ProgressDialog(QDialog):
         self.cancel_btn.setEnabled(False)
         self.close_btn.setEnabled(True)
         
+        # Enable open folder button if any conversions succeeded
+        if success_count > 0:
+            self.open_folder_btn.setEnabled(True)
+        
         self.log_text.append(f"\n{'='*50}")
         self.log_text.append(f"Conversion finished!")
         self.log_text.append(f"Success: {success_count}/{total_count}")
         self.log_text.append(f"Total time: {elapsed:.1f}s")
+        
+        if success_count > 0:
+            # Get output folder path
+            first_file = Path(self.files[0])
+            output_folder = first_file.parent / "converted"
+            self.log_text.append(f"\n📁 Output saved to: {output_folder}")
     
     def _on_preview_updated(self, image_rgb):
         """Handle preview update."""
@@ -417,6 +453,23 @@ class ProgressDialog(QDialog):
         self.log_text.append("\n⚠️ Conversion cancelled by user")
         self.cancel_btn.setEnabled(False)
         self.close_btn.setEnabled(True)
+    
+    def _open_output_folder(self):
+        """Open the output folder in Finder/Explorer."""
+        import subprocess
+        import sys
+        
+        # Get output folder from first file
+        first_file = Path(self.files[0])
+        output_folder = first_file.parent / "converted"
+        
+        if output_folder.exists():
+            if sys.platform == 'darwin':  # macOS
+                subprocess.run(['open', str(output_folder)])
+            elif sys.platform == 'win32':  # Windows
+                subprocess.run(['explorer', str(output_folder)])
+            else:  # Linux
+                subprocess.run(['xdg-open', str(output_folder)])
     
     def closeEvent(self, event):
         """Handle dialog close."""

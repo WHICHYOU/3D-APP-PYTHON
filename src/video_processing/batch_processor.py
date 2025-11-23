@@ -143,31 +143,92 @@ class BatchProcessor:
         Returns:
             List of output frame paths
         """
-        output_paths = []
+        output_paths: List[Path] = []
         total = len(frame_paths)
-        
-        logger.info(f"Processing {total} frames...")
-        
-        for i, frame_path in enumerate(frame_paths, 1):
-            try:
-                output_path = self.process_frame(
-                    frame_path,
-                    output_dir,
-                    output_format,
-                    depth_intensity,
-                    save_intermediate
-                )
-                output_paths.append(output_path)
-                
-                if progress_callback:
-                    progress_callback(i, total)
-                
-                if i % 10 == 0 or i == total:
-                    logger.info(f"Processed {i}/{total} frames ({i*100//total}%)")
-                    
-            except Exception as e:
-                logger.error(f"Failed to process frame {frame_path}: {e}")
-                raise
-        
+
+        logger.info(f"Processing {total} frames (batch mode)...")
+
+        # Determine batch size from depth estimator if available
+        batch_size = getattr(self.depth_estimator, 'batch_size', 4)
+        # Fallback to 4 if not set
+        if not isinstance(batch_size, int) or batch_size <= 0:
+            batch_size = 4
+
+        # Process in batches: run depth estimation in batches, then render/save each frame (can be parallelized)
+        for start in range(0, total, batch_size):
+            end = min(start + batch_size, total)
+            batch_paths = frame_paths[start:end]
+
+            # Load batch images into memory
+            images = []
+            for p in batch_paths:
+                img_bgr = cv2.imread(str(p))
+                if img_bgr is None:
+                    raise ValueError(f"Failed to load frame: {p}")
+                img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+                images.append(img_rgb)
+
+            # Run batched depth estimation
+            depth_maps = self.depth_estimator.batch_estimate(images, normalize=True, batch_size=batch_size)
+
+            # For each result in the batch, render and save. Rendering/hole-filling/composition are CPU-bound
+            for i_in_batch, frame_path in enumerate(batch_paths, start + 1):
+                try:
+                    depth_map = depth_maps[i_in_batch - start]
+
+                    # Render stereo pair
+                    left_view, right_view = self.dibr_renderer.render_stereo_pair(
+                        images[i_in_batch - start],
+                        depth_map,
+                        depth_intensity=depth_intensity
+                    )
+
+                    # Fill holes (method comes from config manager elsewhere; using default fast_marching)
+                    left_view, right_view = fill_stereo_pair_holes(left_view, right_view)
+
+                    # Compose output format
+                    if output_format == "half_sbs":
+                        output = self.sbs_composer.compose_half_sbs(left_view, right_view)
+                    elif output_format == "full_sbs":
+                        output = self.sbs_composer.compose_full_sbs(left_view, right_view)
+                    elif output_format == "anaglyph":
+                        output = self.sbs_composer.compose_anaglyph(left_view, right_view)
+                    elif output_format == "top_bottom":
+                        output = self.sbs_composer.compose_top_bottom(left_view, right_view, half_resolution=True)
+                    else:
+                        raise ValueError(f"Unknown output format: {output_format}")
+
+                    # Save output
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                    output_path = output_dir / frame_path.name
+                    output_bgr = cv2.cvtColor(output, cv2.COLOR_RGB2BGR)
+                    cv2.imwrite(str(output_path), output_bgr)
+                    output_paths.append(output_path)
+
+                    # Save intermediate results if requested
+                    if save_intermediate:
+                        depth_path = output_dir / f"depth_{frame_path.name}"
+                        depth_normalized = (depth_map * 255).astype(np.uint8)
+                        cv2.imwrite(str(depth_path), depth_normalized)
+
+                        left_path = output_dir / f"left_{frame_path.name}"
+                        left_bgr = cv2.cvtColor(left_view, cv2.COLOR_RGB2BGR)
+                        cv2.imwrite(str(left_path), left_bgr)
+
+                        right_path = output_dir / f"right_{frame_path.name}"
+                        right_bgr = cv2.cvtColor(right_view, cv2.COLOR_RGB2BGR)
+                        cv2.imwrite(str(right_path), right_bgr)
+
+                    # Progress callback (global index)
+                    if progress_callback:
+                        progress_callback(i_in_batch, total)
+
+                    if i_in_batch % 10 == 0 or i_in_batch == total:
+                        logger.info(f"Processed {i_in_batch}/{total} frames ({i_in_batch*100//total}%)")
+
+                except Exception as e:
+                    logger.error(f"Failed to process frame {frame_path}: {e}")
+                    raise
+
         logger.info(f"Successfully processed {len(output_paths)} frames")
         return output_paths
