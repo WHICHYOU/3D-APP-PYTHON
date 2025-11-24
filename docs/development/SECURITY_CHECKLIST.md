@@ -14,10 +14,12 @@
 ### Files to Review
 
 1. **src/license/manager.py**
+
    - ⚠️ Contains hardcoded `SECRET_KEY = "3d_conv_app_secret_2025"`
    - **ACTION REQUIRED**: Move to environment variable
 
 2. **.env files**
+
    - ✅ `.env` is git-ignored
    - ✅ `.env.example` contains only examples
 
@@ -30,12 +32,14 @@
 #### 1. Move Secret Key to Environment Variable
 
 **In `.env.example`:**
+
 ```bash
 # License validation secret key (generate unique key for your environment)
 LICENSE_SECRET_KEY=your_secret_key_here
 ```
 
 **In `src/license/manager.py`:**
+
 ```python
 import os
 from pathlib import Path
@@ -47,7 +51,7 @@ load_dotenv()
 class LicenseManager:
     # Get secret from environment, fallback to default for development
     SECRET_KEY = os.getenv('LICENSE_SECRET_KEY', 'dev_default_secret_key_not_for_production')
-    
+
     # Warn if using default
     if SECRET_KEY == 'dev_default_secret_key_not_for_production':
         import logging
@@ -66,7 +70,8 @@ print(f"LICENSE_SECRET_KEY={secret_key}")
 #### 3. Update Documentation
 
 Add to README.md or CONTRIBUTING.md:
-```markdown
+
+````markdown
 ### Environment Variables
 
 Copy `.env.example` to `.env` and configure:
@@ -75,10 +80,13 @@ Copy `.env.example` to `.env` and configure:
 cp .env.example .env
 # Edit .env with your settings
 ```
+````
 
 **Required for production:**
+
 - `LICENSE_SECRET_KEY` - Generate with: `python -c "import secrets; print(secrets.token_urlsafe(32))"`
-```
+
+````
 
 ## 🔐 Security Best Practices for Team
 
@@ -103,13 +111,14 @@ cp .env.example .env
    ```bash
    pip list --outdated
    pip install --upgrade package-name
-   ```
+````
 
 5. **Scan for secrets**
+
    ```bash
    # Install git-secrets or gitleaks
    brew install gitleaks  # macOS
-   
+
    # Scan repository
    gitleaks detect --source . --verbose
    ```
@@ -117,16 +126,19 @@ cp .env.example .env
 ### For Repository Maintainers
 
 1. **Enable branch protection**
+
    - Require pull request reviews
    - Require status checks to pass
    - No force pushes to main/develop
 
 2. **Set up secret scanning**
+
    - GitHub Advanced Security (if available)
    - Pre-commit hooks with secret detection
    - CI/CD pipeline secret scanning
 
 3. **Manage access properly**
+
    - Principle of least privilege
    - Use teams for permission management
    - Regular access reviews
@@ -141,11 +153,12 @@ cp .env.example .env
 ### If Committed to Local Branch (Not Pushed)
 
 1. **Remove from history:**
+
    ```bash
    # If last commit
    git reset --soft HEAD~1
    git restore --staged <file>
-   
+
    # Edit file, remove secret
    # Commit again
    git add <file>
@@ -163,21 +176,23 @@ cp .env.example .env
 ### If Pushed to Remote
 
 1. **Rotate the secret immediately**
+
    - Generate new key/token
    - Update production systems
    - Revoke old secret
 
 2. **Remove from history** (destructive, coordinate with team):
+
    ```bash
    # Use BFG Repo-Cleaner or git-filter-repo
    brew install bfg  # macOS
-   
+
    # Clone a fresh copy
    git clone --mirror https://github.com/WHICHYOU/3D-APP-PYTHON.git
-   
+
    # Remove secrets
    bfg --replace-text secrets.txt 3D-APP-PYTHON.git
-   
+
    # Push changes (force)
    cd 3D-APP-PYTHON.git
    git reflog expire --expire=now --all && git gc --prune=now --aggressive
@@ -205,6 +220,7 @@ cp .env.example .env
 ### Pre-commit Hooks
 
 Create `.pre-commit-config.yaml`:
+
 ```yaml
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -224,6 +240,7 @@ repos:
 ```
 
 Install:
+
 ```bash
 pip install pre-commit
 pre-commit install
@@ -232,6 +249,7 @@ pre-commit install
 ### Environment Variable Management
 
 **Development:**
+
 ```bash
 # .env (git-ignored)
 DEBUG_MODE=true
@@ -239,12 +257,14 @@ LICENSE_SECRET_KEY=dev-key-123-not-for-production
 ```
 
 **Staging/Production:**
+
 - Use cloud secret managers (AWS Secrets Manager, Azure Key Vault, GCP Secret Manager)
 - Or encrypted configuration management (Ansible Vault, HashiCorp Vault)
 
 ### Code Review Checklist
 
 Before approving any PR, check:
+
 - [ ] No hardcoded credentials or API keys
 - [ ] No sensitive data in logs
 - [ ] Input validation for user data

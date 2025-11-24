@@ -146,7 +146,7 @@ Compared to original `midas_large` (5-7 FPS):
    - Updated default model to 'midas_hybrid'
    - Added precision config
 
-6. **test_model_selection.py** (NEW)
+6. **tests/manual/test_model_selection.py** (NEW)
    - Verification script for model registry
    - Config integration test
 
@@ -199,7 +199,7 @@ Run verification test:
 
 ```bash
 cd /Users/SB/Downloads/3d_conversion_app_python
-python3 test_model_selection.py
+python3 tests/manual/test_model_selection.py
 ```
 
 Expected output:

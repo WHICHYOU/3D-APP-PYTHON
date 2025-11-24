@@ -13,6 +13,7 @@ Quick guide for in-house developers to set up their development environment.
 ### Platform-Specific Requirements
 
 **macOS:**
+
 ```bash
 # Install Xcode Command Line Tools
 xcode-select --install
@@ -25,12 +26,14 @@ brew install python@3.10
 ```
 
 **Windows:**
+
 - Install Python from python.org (3.10+)
 - Install Microsoft Visual C++ Redistributable
 - Install Git for Windows
 - (Optional) Install NVIDIA CUDA Toolkit if you have NVIDIA GPU
 
 **Linux (Ubuntu/Debian):**
+
 ```bash
 sudo apt update
 sudo apt install python3.10 python3.10-venv python3-pip git build-essential
@@ -99,6 +102,7 @@ cp .env.example .env
 ```
 
 **Recommended .env for development:**
+
 ```bash
 DEBUG_MODE=true
 LOG_LEVEL=DEBUG
@@ -130,6 +134,7 @@ python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}'); print(f'MP
 1. **Install VS Code**: Download from code.visualstudio.com
 
 2. **Install Extensions:**
+
    - Python (ms-python.python)
    - Pylance (ms-python.vscode-pylance)
    - Python Debugger (ms-python.debugpy)
@@ -139,6 +144,7 @@ python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}'); print(f'MP
 3. **Configure workspace:**
 
 Create `.vscode/settings.json`:
+
 ```json
 {
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
@@ -164,6 +170,7 @@ Create `.vscode/settings.json`:
 4. **Configure debugging:**
 
 Create `.vscode/launch.json`:
+
 ```json
 {
   "version": "0.2.0",
@@ -191,7 +198,7 @@ Create `.vscode/launch.json`:
 ### PyCharm
 
 1. **Open Project**: File → Open → Select project folder
-2. **Configure Interpreter**: 
+2. **Configure Interpreter**:
    - Settings → Project → Python Interpreter
    - Click gear icon → Add → Existing environment
    - Select `.venv/bin/python`
@@ -358,6 +365,7 @@ pip freeze > requirements.txt
 **Problem**: `python` still points to system Python
 
 **Solution**:
+
 ```bash
 deactivate  # If already activated
 rm -rf .venv
@@ -371,6 +379,7 @@ which python  # Should show .venv path
 **Problem**: `ModuleNotFoundError: No module named 'torch'`
 
 **Solution**:
+
 ```bash
 # Ensure venv is activated
 source .venv/bin/activate
@@ -384,6 +393,7 @@ pip install -r requirements.txt
 **Problem**: PyTorch not detecting GPU
 
 **Solution**:
+
 ```bash
 # Check CUDA availability
 python -c "import torch; print(torch.cuda.is_available())"
@@ -400,6 +410,7 @@ python -c "import torch; print(torch.backends.mps.is_available())"
 **Problem**: Qt platform plugin errors
 
 **Solution**:
+
 ```bash
 # Reinstall PyQt6
 pip uninstall PyQt6 PyQt6-Qt6 PyQt6-sip
@@ -414,6 +425,7 @@ rm -rf ~/Library/Caches/QtProject
 **Problem**: Model download times out or fails
 
 **Solution**:
+
 ```bash
 # Download manually
 python download_models.py
@@ -428,12 +440,14 @@ curl -I https://github.com
 ## Getting Help
 
 ### Documentation
+
 - **README.md** - Project overview and quick start
 - **CONTRIBUTING.md** - Full contribution guidelines
 - **PROJECT_STRUCTURE.md** - Code organization
 - **GUI_USER_GUIDE.md** - User interface guide
 
 ### Team Communication
+
 - **Slack**: #3d-converter-dev
 - **GitHub Issues**: Bug reports and features
 - **GitHub Discussions**: Questions and ideas
@@ -462,18 +476,18 @@ find src -name "*.py" | xargs wc -l
 
 ## Quick Reference
 
-| Task | Command |
-|------|---------|
-| Activate venv | `source .venv/bin/activate` |
-| Run app | `python src/app.py` |
-| Run tests | `pytest` |
-| Format code | `black src/` |
-| Check style | `flake8 src/` |
-| Update deps | `pip install -r requirements.txt` |
-| Build app | `./build_config/build_macos.sh` |
-| Git status | `git status` |
-| Create branch | `git checkout -b feature/name` |
-| Commit | `git commit -m "type(scope): message"` |
+| Task          | Command                                |
+| ------------- | -------------------------------------- |
+| Activate venv | `source .venv/bin/activate`            |
+| Run app       | `python src/app.py`                    |
+| Run tests     | `pytest`                               |
+| Format code   | `black src/`                           |
+| Check style   | `flake8 src/`                          |
+| Update deps   | `pip install -r requirements.txt`      |
+| Build app     | `./build_config/build_macos.sh`        |
+| Git status    | `git status`                           |
+| Create branch | `git checkout -b feature/name`         |
+| Commit        | `git commit -m "type(scope): message"` |
 
 ## Next Steps
 

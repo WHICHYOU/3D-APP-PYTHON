@@ -26,7 +26,7 @@ ffmpeg -version
 
 ```bash
 # Basic conversion to Half Side-by-Side (VR standard)
-python convert_video.py input.mp4 output_3d.mp4
+python scripts/utils/convert_video.py input.mp4 output_3d.mp4
 ```
 
 That's it! Your video will be converted to stereoscopic 3D.
@@ -38,7 +38,7 @@ That's it! Your video will be converted to stereoscopic 3D.
 ### Basic Usage
 
 ```bash
-python convert_video.py <input_video> <output_video> [options]
+python scripts/utils/convert_video.py <input_video> <output_video> [options]
 ```
 
 ### Output Formats
@@ -46,7 +46,7 @@ python convert_video.py <input_video> <output_video> [options]
 **Half Side-by-Side (Recommended for VR)**
 
 ```bash
-python convert_video.py input.mp4 output.mp4 --format half_sbs
+python scripts/utils/convert_video.py input.mp4 output.mp4 --format half_sbs
 ```
 
 - Best for VR headsets (Oculus Quest, PSVR, Google Cardboard)
@@ -56,7 +56,7 @@ python convert_video.py input.mp4 output.mp4 --format half_sbs
 **Full Side-by-Side (Maximum Quality)**
 
 ```bash
-python convert_video.py input.mp4 output.mp4 --format full_sbs
+python scripts/utils/convert_video.py input.mp4 output.mp4 --format full_sbs
 ```
 
 - Full resolution per eye
@@ -66,7 +66,7 @@ python convert_video.py input.mp4 output.mp4 --format full_sbs
 **Anaglyph (Red-Cyan Glasses)**
 
 ```bash
-python convert_video.py input.mp4 output.mp4 --format anaglyph
+python scripts/utils/convert_video.py input.mp4 output.mp4 --format anaglyph
 ```
 
 - Works with cheap red-cyan 3D glasses
@@ -76,7 +76,7 @@ python convert_video.py input.mp4 output.mp4 --format anaglyph
 **Top-Bottom (3D TVs)**
 
 ```bash
-python convert_video.py input.mp4 output.mp4 --format top_bottom
+python scripts/utils/convert_video.py input.mp4 output.mp4 --format top_bottom
 ```
 
 - Compatible with some 3D TVs

@@ -271,7 +271,7 @@ open "/Applications/2D to 3D Converter.app"
 
 ## Getting Started
 
-Once installed, see the [GUI User Guide](../GUI_USER_GUIDE.md) for:
+Once installed, see the [GUI User Guide](user-guides/GUI_USER_GUIDE.md) for:
 
 - Interface walkthrough
 - Converting your first image
@@ -453,6 +453,6 @@ A: Click "Upgrade" in app or visit website for license key.
 
 ---
 
-**Installation complete? → See [GUI User Guide](../GUI_USER_GUIDE.md) to get started!**
+**Installation complete? → See [GUI User Guide](user-guides/GUI_USER_GUIDE.md) to get started!**
 
 _Last updated: November 19, 2025 | Version 1.0_

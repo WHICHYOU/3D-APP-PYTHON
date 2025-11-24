@@ -463,7 +463,7 @@ ls -la ~/.local/share/applications/3dconverter.desktop
 
 ## Getting Started
 
-Once installed, see the [GUI User Guide](../GUI_USER_GUIDE.md) for:
+Once installed, see the [GUI User Guide](user-guides/GUI_USER_GUIDE.md) for:
 
 - Interface walkthrough
 - Converting your first image
@@ -619,6 +619,6 @@ A: Download new AppImage and replace old one.
 
 ---
 
-**Installation complete? → See [GUI User Guide](../GUI_USER_GUIDE.md) to get started!**
+**Installation complete? → See [GUI User Guide](user-guides/GUI_USER_GUIDE.md) to get started!**
 
 _Last updated: November 19, 2025 | Version 1.0_

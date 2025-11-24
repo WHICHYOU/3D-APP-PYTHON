@@ -55,7 +55,7 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 5. **Verify installation**
    ```bash
-   python test_model_selection.py
+   python tests/manual/test_model_selection.py
    python -c "import torch; print(f'PyTorch: {torch.__version__}')"
    ```
 
@@ -411,7 +411,7 @@ Follow semantic versioning: `MAJOR.MINOR.PATCH`
 
 - [Project Documentation](docs/README.md)
 - [API Reference](docs/api/README.md)
-- [User Guide](GUI_USER_GUIDE.md)
+- [User Guide](docs/user-guides/GUI_USER_GUIDE.md)
 - [Architecture Overview](planning/TECHNICAL_ARCHITECTURE.md)
 
 ## 📜 License
