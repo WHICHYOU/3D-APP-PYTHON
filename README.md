@@ -23,13 +23,14 @@ AI-powered desktop application that converts 2D images and videos into 3D Side-b
 
 Get the latest release for your platform:
 
-**[📥 Download from GitHub Releases](https://github.com/WHICHYOU/3D-APP-PYTHON/releases)**
+**[📥 Download from Releases Repository](https://github.com/WHICHYOU/3D-APP-PYTHON-releases-only/releases/latest)**
 
 Available platforms:
+- **macOS:** Available now - `.zip` app bundle (Apple Silicon and Intel)
+- **Windows:** Coming soon - `.zip` with CUDA support for NVIDIA GPUs
+- **Linux:** Coming soon - `.tar.gz` CPU-only version
 
-- **macOS:** `.dmg` installer or `.zip` app bundle (Apple Silicon and Intel)
-- **Windows:** `.zip` with CUDA support for NVIDIA GPUs
-- **Linux:** `.tar.gz` CPU-only version
+For detailed installation instructions and system requirements, visit the [Releases Repository](https://github.com/WHICHYOU/3D-APP-PYTHON-releases-only).
 
 ### Option 2: Run from Source
 
