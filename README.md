@@ -21,6 +21,7 @@ Get the latest release for your platform:
 #### Run from Source
 
 **macOS (Apple Silicon M1/M2/M3):**
+
 ```bash
 git clone https://github.com/WHICHYOU/3D-APP-PYTHON.git
 cd 3D-APP-PYTHON
@@ -32,6 +33,7 @@ python app.py
 ```
 
 **Windows (with NVIDIA GPU - Recommended):**
+
 ```batch
 git clone https://github.com/WHICHYOU/3D-APP-PYTHON.git
 cd 3D-APP-PYTHON
@@ -43,6 +45,7 @@ python app.py
 ```
 
 **Windows (CPU-only - Slower):**
+
 ```batch
 pip install -r requirements.txt
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
@@ -50,6 +53,7 @@ python app.py
 ```
 
 **Linux:**
+
 ```bash
 git clone https://github.com/WHICHYOU/3D-APP-PYTHON.git
 cd 3D-APP-PYTHON
@@ -86,6 +90,7 @@ See **[GUI_USER_GUIDE.md](GUI_USER_GUIDE.md)** for desktop app instructions and 
 ### Build Commands
 
 **macOS:**
+
 ```bash
 # Make script executable (first time only)
 chmod +x build_config/build_macos.sh
@@ -97,6 +102,7 @@ chmod +x build_config/build_macos.sh
 ```
 
 **Windows:**
+
 ```batch
 # Build the .exe
 build_config\build_windows.bat
@@ -105,6 +111,7 @@ build_config\build_windows.bat
 ```
 
 **Create macOS DMG Installer:**
+
 ```bash
 # Install create-dmg (first time only)
 brew install create-dmg
@@ -135,6 +142,7 @@ git push origin v1.0.0
 ```
 
 The workflow automatically builds for:
+
 - ✅ macOS (Apple Silicon + Intel)
 - ✅ Windows (CUDA support)
 - ✅ Linux (CPU-only)
@@ -146,6 +154,7 @@ Artifacts are uploaded to GitHub Releases automatically.
 ## 💻 System Requirements
 
 ### macOS
+
 - **OS:** macOS 11.0 (Big Sur) or later
 - **Processor:** Apple Silicon (M1/M2/M3) recommended
   - Intel Macs supported but significantly slower (CPU-only)
@@ -154,6 +163,7 @@ Artifacts are uploaded to GitHub Releases automatically.
 - **GPU:** MPS acceleration automatic on Apple Silicon
 
 ### Windows
+
 - **OS:** Windows 10/11 (64-bit)
 - **Processor:** Intel Core i5 or AMD Ryzen 5 (6th gen or newer)
 - **RAM:** 8GB minimum, 16GB recommended
@@ -164,6 +174,7 @@ Artifacts are uploaded to GitHub Releases automatically.
   - CPU-only mode available but 10-20x slower
 
 ### Linux
+
 - **OS:** Ubuntu 20.04+, Fedora 35+, or equivalent
 - **Processor:** Intel Core i5 or AMD Ryzen 5 (6th gen or newer)
 - **RAM:** 8GB minimum, 16GB recommended
@@ -174,10 +185,12 @@ Artifacts are uploaded to GitHub Releases automatically.
 ### Performance Expectations
 
 **With GPU Acceleration (MPS/CUDA):**
+
 - 1080p video: ~1.5-3 seconds per frame
 - 4K video: ~4-8 seconds per frame
 
 **CPU-Only (Slow):**
+
 - 1080p video: ~10-20 seconds per frame
 - 4K video: ~40-80 seconds per frame
 
@@ -186,11 +199,13 @@ Artifacts are uploaded to GitHub Releases automatically.
 ## 🔧 Command Line Interface (Advanced)
 
 **Convert an image:**
+
 ```bash
 python convert_image.py input.jpg output_3d.jpg --format half_sbs
 ```
 
 **Convert a video:**
+
 ```bash
 python convert_video.py input.mp4 output_3d.mp4 --format half_sbs
 ```
