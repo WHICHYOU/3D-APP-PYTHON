@@ -5,8 +5,71 @@ Handles depth map generation using AI models (MiDaS, Depth-Anything-V2)
 import numpy as np
 import cv2
 import torch
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from pathlib import Path
+
+
+# Model metadata for UI selection
+MODEL_REGISTRY = {
+    'midas_small': {
+        'name': 'MiDaS Small (Fastest)',
+        'hub_name': 'MiDaS_small',
+        'transform_type': 'small_transform',
+        'description': 'Smallest and fastest model. Good for real-time preview or quick processing.',
+        'speed': 'Very Fast (~90 FPS)',
+        'quality': 'Basic',
+        'vram': '~1 GB',
+        'model_size': '~100 MB',
+        'recommended': 'Quick conversions, preview mode',
+    },
+    'midas_hybrid': {
+        'name': 'MiDaS Hybrid (Balanced)',
+        'hub_name': 'DPT_Hybrid',
+        'transform_type': 'dpt_transform',
+        'description': 'Balanced speed and quality. Best for most use cases.',
+        'speed': 'Fast (~30-40 FPS)',
+        'quality': 'Good',
+        'vram': '~2 GB',
+        'model_size': '~470 MB',
+        'recommended': 'General purpose, best speed/quality ratio',
+    },
+    'midas_swin2_large': {
+        'name': 'MiDaS Swin2-Large (High Quality)',
+        'hub_name': 'DPT_Swin2_L_384',
+        'transform_type': 'swin384_transform',
+        'description': 'High quality depth with excellent details. Good balance of speed and accuracy.',
+        'speed': 'Medium (~20-25 FPS)',
+        'quality': 'Very Good',
+        'vram': '~3 GB',
+        'model_size': '~840 MB',
+        'recommended': 'High quality video conversion',
+    },
+    'midas_swin2_tiny': {
+        'name': 'MiDaS Swin2-Tiny (Fast)',
+        'hub_name': 'DPT_Swin2_T_256',
+        'transform_type': 'swin256_transform',
+        'description': 'Tiny Swin transformer. Very fast with good quality.',
+        'speed': 'Very Fast (~64 FPS)',
+        'quality': 'Good',
+        'vram': '~1.5 GB',
+        'model_size': '~155 MB',
+        'recommended': 'Fast processing with good results',
+    },
+    'midas_large': {
+        'name': 'MiDaS Large (Maximum Quality)',
+        'hub_name': 'DPT_Large',
+        'transform_type': 'dpt_transform',
+        'description': 'Highest quality depth estimation. Slowest but most accurate.',
+        'speed': 'Slow (~5-7 FPS)',
+        'quality': 'Excellent',
+        'vram': '~4 GB',
+        'model_size': '~1.3 GB',
+        'recommended': 'Professional work, maximum quality needed',
+    },
+}
+
+# Default model (fastest good quality)
+DEFAULT_MODEL = 'midas_hybrid'
 
 
 class DepthEstimator:
@@ -14,7 +77,7 @@ class DepthEstimator:
     
     def __init__(
         self,
-        model_type: str = "midas_v3",
+        model_type: str = DEFAULT_MODEL,
         device: str = "auto",
         precision: str = "fp16",
         batch_size: int = 4
@@ -23,11 +86,17 @@ class DepthEstimator:
         Initialize depth estimator
         
         Args:
-            model_type: Model to use ('midas_v3', 'depth_anything_v2')
+            model_type: Model to use (see MODEL_REGISTRY for options)
             device: Device for inference ('auto', 'cuda', 'cpu', 'mps')
             precision: Precision mode ('fp32', 'fp16')
+            batch_size: Batch size for processing
         """
+        if model_type not in MODEL_REGISTRY:
+            print(f"Warning: Unknown model '{model_type}', using default '{DEFAULT_MODEL}'")
+            model_type = DEFAULT_MODEL
+            
         self.model_type = model_type
+        self.model_info = MODEL_REGISTRY[model_type]
         self.device = self._select_device(device)
         self.precision = precision
         self.batch_size = batch_size
@@ -50,54 +119,92 @@ class DepthEstimator:
     
     def _load_model(self):
         """Load the depth estimation model"""
-        print(f"Loading {self.model_type} model on {self.device}...")
-        print("Note: First-time download may take several minutes (~1.3 GB)")
+        model_name = self.model_info['name']
+        model_size = self.model_info['model_size']
+        
+        print(f"Loading {model_name}...")
+        print(f"Model size: {model_size}")
+        print("Note: First-time download may take a few minutes")
         print("Subsequent runs will use cached models...")
         
-        if self.model_type == "midas_v3":
-            # Load MiDaS v3.1 DPT-Large model
-            print("Downloading/Loading MiDaS DPT-Large...")
+        try:
+            # Load MiDaS model from torch hub
+            print(f"Loading model: {self.model_info['hub_name']}")
             self.model = torch.hub.load(
                 "intel-isl/MiDaS",
-                "DPT_Large",
+                self.model_info['hub_name'],
                 pretrained=True,
-                trust_repo=True
+                trust_repo=True,
+                skip_validation=True
             )
             
-            # Load transforms
+            # Load appropriate transforms
             print("Loading transforms...")
-            midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
-            self.transform = midas_transforms.dpt_transform
+            midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms", skip_validation=True)
             
-        elif self.model_type == "midas_v3_small":
-            # Smaller/faster MiDaS variant
-            self.model = torch.hub.load(
-                "intel-isl/MiDaS",
-                "DPT_Hybrid",
-                pretrained=True,
-                trust_repo=True
-            )
-            midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
-            self.transform = midas_transforms.dpt_transform
-            
-        elif self.model_type == "depth_anything_v2":
-            # Depth-Anything-V2 (requires manual download)
-            raise NotImplementedError(
-                "Depth-Anything-V2 requires manual model download. "
-                "Use 'midas_v3' for now."
-            )
-        else:
-            raise ValueError(f"Unknown model type: {self.model_type}")
+            # Select transform based on model type
+            transform_name = self.model_info['transform_type']
+            if transform_name == 'small_transform':
+                self.transform = midas_transforms.small_transform
+            elif transform_name == 'dpt_transform':
+                self.transform = midas_transforms.dpt_transform
+            elif transform_name == 'swin384_transform':
+                # For Swin2-Large 384
+                self.transform = midas_transforms.swin384_transform
+            elif transform_name == 'swin256_transform':
+                # For Swin2-Tiny 256
+                self.transform = midas_transforms.swin256_transform
+            else:
+                # Fallback to dpt_transform
+                self.transform = midas_transforms.dpt_transform
+                
+        except Exception as e:
+            print(f"Error loading model: {e}")
+            raise RuntimeError(f"Failed to load {model_name}: {e}")
         
         # Move model to device
         self.model.to(self.device)
         self.model.eval()
         
         # Enable half precision if requested and supported
-        if self.precision == "fp16" and self.device.type == "cuda":
-            self.model.half()
+        if self.precision == "fp16":
+            if self.device.type == "cuda":
+                self.model.half()
+                print("Using FP16 precision on CUDA")
+            elif self.device.type == "mps":
+                # MPS supports FP16 since PyTorch 2.0
+                try:
+                    self.model.half()
+                    print("Using FP16 precision on MPS")
+                except Exception as e:
+                    print(f"FP16 not supported on MPS, using FP32: {e}")
         
-        print(f"✓ Model loaded successfully on {self.device}")
+        print(f"✓ {model_name} loaded successfully on {self.device}")
+        print(f"  Expected speed: {self.model_info['speed']}")
+        print(f"  Quality level: {self.model_info['quality']}")
+    
+    @staticmethod
+    def get_available_models() -> Dict[str, Dict]:
+        """
+        Get list of available models with metadata
+        
+        Returns:
+            Dictionary of model configurations
+        """
+        return MODEL_REGISTRY.copy()
+    
+    @staticmethod
+    def get_model_info(model_type: str) -> Optional[Dict]:
+        """
+        Get metadata for a specific model
+        
+        Args:
+            model_type: Model identifier
+            
+        Returns:
+            Model metadata dictionary or None
+        """
+        return MODEL_REGISTRY.get(model_type)
     
     def estimate_depth(
         self,

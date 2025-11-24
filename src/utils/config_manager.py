@@ -13,9 +13,10 @@ class ConfigManager:
     
     DEFAULT_CONFIG = {
         'depth_estimation': {
-            'model': 'midas_v31',
+            'model': 'midas_hybrid',  # Default to balanced model
             'device': 'auto',
             'batch_size': 4,
+            'precision': 'fp16',
         },
         'rendering': {
             'ipd': 65.0,

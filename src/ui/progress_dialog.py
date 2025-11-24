@@ -59,8 +59,11 @@ class ConversionWorker(QThread):
             from ..rendering.dibr_renderer import DIBRRenderer
             from ..rendering.sbs_composer import SBSComposer
             
-            self.progress_updated.emit(0, total_count, "Initializing AI models...")
-            estimator = DepthEstimator()
+            # Get model type from settings
+            model_type = self.settings.get('model_type', 'midas_hybrid')
+            
+            self.progress_updated.emit(0, total_count, f"Initializing AI model: {model_type}...")
+            estimator = DepthEstimator(model_type=model_type)
             renderer = DIBRRenderer(ipd=self.settings.get('ipd', 65))
             composer = SBSComposer()
             

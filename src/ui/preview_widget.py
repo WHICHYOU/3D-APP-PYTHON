@@ -30,6 +30,7 @@ class PreviewWidget(QWidget):
         self.original_image = None
         self.depth_map = None
         self.stereo_output = None
+        self.settings = {}  # Store settings for depth estimation
         self._setup_ui()
         
         logger.info("PreviewWidget initialized")
@@ -182,7 +183,10 @@ class PreviewWidget(QWidget):
             # Import depth estimator
             from ..ai_core.depth_estimation import DepthEstimator
             
-            estimator = DepthEstimator()
+            # Get model type from settings
+            model_type = self.settings.get('model_type', 'midas_hybrid')
+            
+            estimator = DepthEstimator(model_type=model_type)
             self.depth_map = estimator.estimate_depth(self.original_image, normalize=True)
             
             # Display depth map
@@ -317,6 +321,7 @@ class PreviewWidget(QWidget):
     
     def update_preview(self, settings: dict):
         """Update preview with new settings."""
+        self.settings = settings  # Store settings
         if self.original_image is not None and self.depth_map is not None:
             self._generate_stereo_output(settings)
     
