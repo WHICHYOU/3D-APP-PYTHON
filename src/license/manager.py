@@ -26,10 +26,20 @@ import time
 import platform
 import subprocess
 import uuid
+import logging
 from pathlib import Path
 from typing import Optional, Dict, List
 from datetime import datetime, timedelta
 from enum import Enum
+
+# Try to load dotenv for environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not installed, will use os.getenv fallback
+
+logger = logging.getLogger(__name__)
 
 
 class LicenseTier(Enum):
@@ -48,8 +58,18 @@ class LicenseManager:
     VALIDATION_ENDPOINT = "/license/validate"
     DEACTIVATION_ENDPOINT = "/license/deactivate"
     
-    # Secret key for local validation (should be obfuscated in production)
-    SECRET_KEY = "3d_conv_app_secret_2025"
+    # Secret key from environment variable (DO NOT hardcode in production)
+    # For development, falls back to a default key with warning
+    SECRET_KEY = os.getenv('LICENSE_SECRET_KEY', 'dev_default_secret_key_not_for_production')
+    
+    # Warn if using default key
+    if SECRET_KEY == 'dev_default_secret_key_not_for_production':
+        if logger.hasHandlers():
+            logger.warning(
+                "⚠️  Using default LICENSE_SECRET_KEY! "
+                "Set LICENSE_SECRET_KEY environment variable for production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            )
     
     def __init__(self, config_dir: Optional[Path] = None):
         """
